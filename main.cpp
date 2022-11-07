@@ -267,27 +267,29 @@ cs::MjpegServer StartSwitchedCamera(const SwitchedCameraConfig& config) {
 // example pipeline
 class MyPipeline : public frc::VisionPipeline {
  public:
+      apriltag_detector_t *td = apriltag_detector_create();
+      apriltag_family_t *tf = tag36h11_create();
+  
+  MyPipeline(void){
+    apriltag_detector_add_family(td, tf);
+  }
 
   void Process(cv::Mat& mat) override {
     //TODO: refractor (probably don't need to create and destroy the detector every frame)
+    
     image_u8_t img_header = { .width = mat.cols,
     .height = mat.rows,
     .stride = mat.cols,
     .buf = mat.data
     };
-    apriltag_detector_t *td = apriltag_detector_create();
-    apriltag_family_t *tf = tag36h11_create();
-    apriltag_detector_add_family(td, tf);
     zarray_t *detections = apriltag_detector_detect(td, &img_header);
     for (int i = 0; i < zarray_size(detections); i++) {
     apriltag_detection_t *det;
     zarray_get(detections, i, &det);
 
     // Do stuff with detections here.
+    
 }
-  // Cleanup.
-  tag36h11_destroy(tf);
-  apriltag_detector_destroy(td);
   }
 };
 }  // namespace
