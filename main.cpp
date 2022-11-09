@@ -24,6 +24,7 @@
 #include "apriltag/tag36h11.h"
 
 #include "opencv4/opencv2/core/mat.hpp"
+#include "opencv4/opencv2/calib3d/calib3d.hpp"
 
 
 
@@ -269,18 +270,39 @@ class MyPipeline : public frc::VisionPipeline {
  public:
       apriltag_detector_t *td = apriltag_detector_create();
       apriltag_family_t *tf = tag36h11_create();
+      nt::NetworkTableEntry detectionCenter;
+      nt::NetworkTableEntry detectionBounds;
+      double cameraArray[3][3] = {{1430.24403,0.0,645.226606},{0.0,1415.29681,487.429715},{0.0,0.0,1.0}};
+      double newCameraArray[3][3] = {1413.22522,0.0,645.461355,0.0,1407.51892,488.005117,0.0,0.0,1.0};
+      double dist[5] = {-0.0322087,-0.01251858,0.00189451,0.00087394,0.37527268};
+      cv::Mat cameraMatrix = cv::Mat(3, 3, CV_32FC1, &cameraArray);
+      cv::Mat newCameraMatrix = cv::Mat(3, 3, CV_32FC1, &newCameraArray);
+      cv::Mat distMatrix = cv::Mat(1,5,CV_32FC1, &dist);
+      int roi[4] = {4,2,1272,954};
+      cv::Mat roiMatrix = cv::Mat(1,4,CV_32FC1,&roi);
+      int x = roi[0];
+      int y = roi[1];
+      int w = roi[2];
+      int h = roi[3];
   
   MyPipeline(void){
     apriltag_detector_add_family(td, tf);
+    auto inst = nt::NetworkTableInstance::GetDefault();
+    auto table = inst.GetTable("datatable");
+    detectionCenter = table->GetEntry("Detection Center");
+    detectionBounds = table->GetEntry("Detection Bounds");
   }
 
   void Process(cv::Mat& mat) override {
     //TODO: refractor (probably don't need to create and destroy the detector every frame)
-    
-    image_u8_t img_header = { .width = mat.cols,
-    .height = mat.rows,
-    .stride = mat.cols,
-    .buf = mat.data
+
+    //undistort image
+    cv::Mat correct_mat;
+    cv::undistort(mat,correct_mat,cameraMatrix,distMatrix,newCameraMatrix);
+    image_u8_t img_header = { .width = correct_mat.cols,
+    .height = correct_mat.rows,
+    .stride = correct_mat.cols,
+    .buf = correct_mat.data
     };
     zarray_t *detections = apriltag_detector_detect(td, &img_header);
     for (int i = 0; i < zarray_size(detections); i++) {
@@ -288,6 +310,10 @@ class MyPipeline : public frc::VisionPipeline {
     zarray_get(detections, i, &det);
 
     // Do stuff with detections here.
+    // I'm stuff
+
+    detectionCenter.SetDoubleArray(det->c);
+    detectionBounds.SetDoubleArray(det->p[0]);
     
 }
   }
