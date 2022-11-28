@@ -21,11 +21,17 @@
 #include "apriltag/common/image_u8.h"
 #include "apriltag/common/zarray.h"
 #include "apriltag/apriltag.h"
-#include "apriltag/tag36h11.h"
+#include "apriltag/tag16h5.h"
 #include "apriltag/apriltag_pose.h"
 
 #include "opencv4/opencv2/core/mat.hpp"
 #include "opencv4/opencv2/calib3d/calib3d.hpp"
+
+#include "frc/geometry/Pose2d.h"
+#include "frc/geometry/Translation2d.h"
+#include "frc/geometry/Rotation2d.h"
+#include "units/length.h"
+#include "units/constants.h"
 
 
 
@@ -270,7 +276,7 @@ cs::MjpegServer StartSwitchedCamera(const SwitchedCameraConfig& config) {
 class MyPipeline : public frc::VisionPipeline {
  public:
       apriltag_detector_t *td = apriltag_detector_create();
-      apriltag_family_t *tf = tag36h11_create();
+      apriltag_family_t *tf = tag16h5_create();
       nt::NetworkTableEntry detectionDistance;
       double cameraArray[3][3] = {{1430.24403,0.0,645.226606},{0.0,1415.29681,487.429715},{0.0,0.0,1.0}};
       double newCameraArray[3][3] = {1413.22522,0.0,645.461355,0.0,1407.51892,488.005117,0.0,0.0,1.0};
@@ -283,8 +289,10 @@ class MyPipeline : public frc::VisionPipeline {
       int w = 1272;
       int h = 954;
       apriltag_detection_info_t info;
-      double tagsize = 0.156;
+      double tagsize = 6 * 2.54/100; // in * cm/in * m/cm
       double target_distance_from_tag = 23/100; // radius of basketball hoop (cm * m/cm)
+      frc::Pose2d hoop_center = Pose2d(Translation2d(units::meter_t(target_distance_from_tag), units::meter_t(0)),Rotation2d(units::constants::PI()));
+      
   
   MyPipeline(void){
     apriltag_detector_add_family(td, tf);
@@ -296,6 +304,7 @@ class MyPipeline : public frc::VisionPipeline {
     info.fy = cameraArray[1][1];
     info.cx = cameraArray[0][2];
     info.cy = cameraArray[1][2];
+
   }
 
   void Process(cv::Mat& mat) override {
