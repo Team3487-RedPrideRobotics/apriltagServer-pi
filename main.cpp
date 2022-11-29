@@ -7,6 +7,7 @@
 #include <string_view>
 #include <thread>
 #include <vector>
+#include <cmath>
 
 #include <fmt/format.h>
 #include <networktables/NetworkTableInstance.h>
@@ -291,7 +292,6 @@ class MyPipeline : public frc::VisionPipeline {
       apriltag_detection_info_t info;
       double tagsize = 6 * 2.54/100; // in * cm/in * m/cm
       double target_distance_from_tag = 23/100; // radius of basketball hoop (cm * m/cm)
-      frc::Pose2d hoop_center = Pose2d(Translation2d(units::meter_t(target_distance_from_tag), units::meter_t(0)),Rotation2d(units::constants::PI()));
       
   
   MyPipeline(void){
@@ -326,9 +326,16 @@ class MyPipeline : public frc::VisionPipeline {
 
 
     matd_t* detection_coordinates = matd_multiply(matd_multiply(matd_transpose(pose.R), matd_create_scalar(-1)),pose.t);
+    double robot_x = matd_get(detection_coordinates,0,2);
+    double robot_y = matd_get(detection_coordinates,0,0);
 
-    
-     detectionDistance.SetDouble(sqrt((pow(matd_get(detection_coordinates,0,2)+target_distance_from_tag,2))+pow(matd_get(detection_coordinates,0,0),2))); 
+    detectionDistance.SetDouble(sqrt((pow(robot_x+target_distance_from_tag,2))+pow(robot_y,2))); 
+
+    // face drive towards hoop
+    double requiredAngle = atan(robot_y/(robot_x+target_distance_from_tag));
+    if(abs(robot_x) < target_distance_from_tag){
+      requiredAngle += M_PI/2;
+    }
     // Do stuff with detections here.
     // I'm stuff    
 }
