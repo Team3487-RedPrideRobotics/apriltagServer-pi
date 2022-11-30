@@ -71,7 +71,7 @@ camera_matrix = (camera_matrix['fx'],camera_matrix['fy'],camera_matrix['cx'],cam
 print(camera_matrix)
 camera_pose = np.array(json.load(open('cameras.json'))['robot_pose'])
 tag_pose = np.array(json.load(open('environment.json'))['tags'][0]['transform'])
-tag_size = 0.152
+tag_size = 0.152 * 1.17
 
 if (cap.isOpened()== False): 
     print("Error opening video stream or file")
@@ -105,7 +105,7 @@ while(cap.isOpened()):
             robot_pose = np.matmul(world_camera_pose, inv_rel_camera_pose)
             
             print(robot_pose)
-            print(robot_pose[2][3]*100/2.54,robot_pose[1][3]*100/2.54)
+            print(math.sqrt((robot_pose[2][3]) ** 2 + (robot_pose[0][3]) ** 2))
 
         cv2.imshow('Frame',frame)
         # Press Q on keyboard to  exit
