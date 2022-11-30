@@ -9,47 +9,6 @@ from pupil_apriltags import Detection
 import numpy as np
 
 
-class Tag():
-    def __init__(self, tag_size, family):
-        self.family = family
-        self.size = tag_size
-        self.locations = {}
-        self.orientations = {}
-        corr = np.eye(3)
-        corr[0, 0] = -1
-        self.tag_corr = corr
-    def add_tag(self,id,x,y,z,theta_x,theta_y,theta_z):
-
-        self.locations[id]=self.inchesToTranslationVector(x,y,z)
-        self.orientations[id]=self.eulerAnglesToRotationMatrix(theta_x,theta_y,theta_z)
-    # Calculates Rotation Matrix given euler angles.
-    def eulerAnglesToRotationMatrix(self, theta_x,theta_y,theta_z):
-        R_x = np.array([[1, 0, 0],
-                        [0, np.cos(theta_x), -np.sin(theta_x)],
-                        [0, np.sin(theta_x), np.cos(theta_x)]
-                        ])
-
-        R_y = np.array([[np.cos(theta_y), 0, np.sin(theta_y)],
-                        [0, 1, 0],
-                        [-np.sin(theta_y), 0, np.cos(theta_y)]
-                        ])
-
-        R_z = np.array([[np.cos(theta_z), -np.sin(theta_z), 0],
-                        [np.sin(theta_z), np.cos(theta_z), 0],
-                        [0, 0, 1]
-                        ])
-
-        R = np.matmul(R_z, np.matmul(R_y, R_x))
-
-        return R.T
-    def inchesToTranslationVector(self,x,y,z):
-        return np.array([[x],[y],[z]])
-    def estimate_pose(self, tag_id, R,t):
-        local = self.tag_corr @ R @ t
-        return self.orientations[tag_id] @ local + self.locations[tag_id]
-
-tag_group = Tag(6,"tag16h5")
-tag_group.add_tag(0,0,-9,0,0,math.pi,0)
 
 cap = cv2.VideoCapture(1)
 at_detector = Detector(families='tag16h5',
@@ -86,11 +45,17 @@ def draw_tag(det, frame):
     t = det.pose_t
     P = np.array([[1,0,0],[0,-1,0],[0,0,-1]])
     yaw = asin(R[2][0]) # from parallel to tag facing direction
-    print(-R * np.matrix(det.pose_t))
+    tag_x, _, tag_z = -R * np.matrix(det.pose_t)
+    tag_z = float(-tag_z)
+    tag_x = float(tag_x)
+
+    required_angle = atan(tag_x/(tag_z+dist_from_obj))
+    print(required_angle)
+
     #print(list(det.pose_R[0]).append(det.pose_t[0][0]))
     #print(tag_size*camera_matrix[0][0]/math.sqrt((corners[0][0]-corners[1][0])**2 + (corners[0][1]-corners[1][1])**2))
     cv2.putText(frame,str(det.pose_t[1]),integerize_tuple(corners[2]),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0))
-    cv2.putText(frame,str(yaw),integerize_tuple(corners[0]),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,255))
+    cv2.putText(frame,str(180/math.pi * yaw),integerize_tuple(corners[0]),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,255))
 
 
 
@@ -109,7 +74,7 @@ while(cap.isOpened()):
         
         tags = at_detector.detect(grey, estimate_tag_pose=True, camera_params=camera_params, tag_size=tag_size)
         for tag in tags:
-            if(tag.tag_id != 0 or tag.pose_err > 1):
+            if(tag.tag_id != 0 or tag.pose_err > 0.1):
                 continue
             
             
