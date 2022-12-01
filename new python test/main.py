@@ -104,8 +104,8 @@ while(cap.isOpened()):
             inv_rel_camera_pose = invert(camera_pose)
             robot_pose = np.matmul(world_camera_pose, inv_rel_camera_pose)
             
-            print(robot_pose)
-            print(math.sqrt((robot_pose[2][3]) ** 2 + (robot_pose[0][3]) ** 2))
+            print("yaw: ",asin(robot_pose[2][0])*180/math.pi)
+            print("distance: ",math.sqrt((robot_pose[2][3]) ** 2 + (robot_pose[0][3]) ** 2))
 
         cv2.imshow('Frame',frame)
         # Press Q on keyboard to  exit
